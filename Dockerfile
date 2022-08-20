@@ -1,21 +1,26 @@
 #syntax=docker/dockerfile:1
 
-# TODO: figure out how to slim the final image down
-
 # substitute jupyter/r-notebook:latest if you want an R kernel as well
 FROM jupyter/minimal-notebook:latest
 
 ARG stata_version=17
-ARG stata_tarball=rsrc/Stata${stata_version}Linux64.tar.gz
 ARG license_file=rsrc/stata.lic
 
+# Downloading from the official website requires special credentials, so
+# we assume your employer or university has probably done this and given you
+# the URL of a cached copy. If this is not the case, you will need to use
+# your personal license credentials to download the tarball from 
+# https://download.stata.com/download/linux64_17/ and put it somewhere
+# accessible to anonymous wget. 
+ARG stata_base_tarball=""
+ARG stata_update_tarball="https://www.stata.com/support/updates/stata${stata_version}/stata${stata_version}update_linux64.tar"
+
 ARG stata_install_dir=/tmp/stata_install
+ARG stata_target_dir=/usr/local/stata${stata_version}
 
 # to build image with the dev kernel instead, override this arg with
 # git+https://github.com/ticoneva/pystata-kernel.git
 ARG kernel_pkgname=pystata-kernel
-
-ARG stata_target_dir=/usr/local/stata${stata_version}
 
 # this path has changed between versions before and might do so again
 ARG taz_path=${stata_install_dir}/unix/linux64
@@ -30,16 +35,33 @@ EXPOSE 8888/tcp
 
 USER root 
 
-ADD ${stata_tarball} ${stata_install_dir}
+COPY ${license_file} /tmp/
 
-# first, unpack the supplied stata tarball and install it. the tarball 
-# includes an install script, but it is mostly about checking for things
-# we can assume thanks to the controlled build environment. the only 
-# substantive thing it does is unpack four .tar.Z files and run a 
-# non-interactive permissions-setting script. we can do that ourselves 
-# and so we do.
-RUN mkdir ${stata_target_dir} && \
+# all this mess does the following things:
+# 
+# 1. fetches the base stata tarball that your university or employer has 
+#    supplied, which is probably out of date
+# 2. unpacks it in the same way the install script would
+# 3. copies your stata.lic into place
+# 4. installs some legacy ncurses libraries stata needs to run
+# 5. fetches the most recent stata update tarball from statacorp's website
+# 6. monkeypatches the stata install to work around a bug in stata's internal
+#    update process (for which, see
+#    https://www.stata.com/support/faqs/web/common-update-error-messages/)
+# 7. tells stata to update itself from the local copy of the tarball
+#    (because if we let stata fetch the update itself and it fails, it fails
+#    in a way that the build process can't easily detect, so it doesn't abort)
+# 8. fixes permissions and cleans up after itself
+#
+# it does all this in one horror command chain because breaking it up would
+# result in a 2+Gb increase in the final image size
+RUN mkdir ${stata_install_dir} && \
+	mkdir ${stata_target_dir} && \
 	ln -s ${stata_target_dir} /usr/local/stata && \
+	wget --output-document=/tmp/stata_linux.tar \
+		 	--no-verbose -- ${stata_base_tarball} && \
+	tar --extract --no-same-owner --directory=${stata_install_dir} \
+			--file=/tmp/stata_linux.tar && \
 	tar --extract --no-same-owner --directory=${stata_target_dir} \
 			--file=${taz_path}/base.taz && \
 	tar --extract --no-same-owner --directory=${stata_target_dir} \
@@ -50,57 +72,29 @@ RUN mkdir ${stata_target_dir} && \
 			--file=${taz_path}/docs.taz && \
 	cp ${taz_path}/setrwxp ${stata_target_dir} && \
 	/bin/bash -c "cd ${stata_target_dir} && ./setrwxp now" && \
-	chmod g+w -R ${stata_target_dir} && \
-	chgrp users -R ${stata_target_dir} && \
-	rm -rf ${stata_install_dir}
-
-# put the stata.lic file in the right place. 
-# TODO: it should be possible to construct the license file from build_args.
-COPY ${license_file} ${stata_target_dir}/	
-
-# stata expects some legacy ncurses libraries
-RUN apt-get update && \
+	mv /tmp/stata.lic ${stata_target_dir}/stata.lic && \
+	rm -rf ${stata_install_dir} && \
+	apt-get update && \
 	apt-get install --no-install-recommends -y libtinfo5 libncurses5 && \
 	apt-get -y upgrade && \
 	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
-
-# now we get stata to update to the latest version. this is messy because: 
-#
-# 1. stata is a bad unix citizen and exits with a zero return code even if
-#    if a batch mode command (in this case, update) fails
-# 2. statacorp's update servers are horribly slow and letting stata fetch
-#    the install files itself can result in undetectable timeouts (see #1)
-# 3. there is what appears to be a bug in the part of stata's internal update
-#    procedure which moves the old versions of the utilities/ subfolders 
-#    out of the way which causes the whole update to abort when it tries 
-#    (see https://www.stata.com/support/faqs/web/common-update-error-messages/)
-# 4. the update process is prone to mess up permissions
-#
-# so in order to work around this we:
-#
-# A. fetch the current stata update file with wget and have stata update from 
-#    a local copy (this could fail if statacorp change the URL)
-# B. manually delete the old utilities/ subfolders so the update can't choke
-#    on them
-# C. rerun the permissions-setting script from the base install
-RUN mkdir -m 775 /tmp/stata_update && \
-	wget --quiet --directory-prefix=/tmp \
-		https://www.stata.com/support/updates/stata${stata_version}/stata${stata_version}update_linux64.tar && \
+	rm -rf /var/lib/apt/lists/* && \
+	mkdir -m 775 /tmp/stata_update && \
+	wget --output-document=/tmp/stata_update.tar \
+			--quiet -- ${stata_update_tarball} && \
 	tar --extract --no-same-owner --directory=/tmp/stata_update \
-		--strip-components=1 \
-		--file=/tmp/stata${stata_version}update_linux64.tar && \
+			--strip-components=1 \
+			--file=/tmp/stata_update.tar && \
 	rm -rf ${stata_target_dir}/utilities/jar && \
 	rm -rf ${stata_target_dir}/utilities/java && \
 	rm -rf ${stata_target_dir}/utilities/pystata && \
 	${stata_target_dir}/stata -q \
 		-b 'update all, force from("/tmp/stata_update")' && \
-	/bin/bash -c \
-		"cd ${stata_target_dir} && ./setrwxp now" && \
-	chmod g+w -R $stata_target_dir && \
-	chgrp users -R $stata_target_dir && \
-	rm -rf /tmp/stata${stata_version}update_linux64.tar && \
-	rm -rf /tmp/stata_update
+	/bin/bash -c "cd ${stata_target_dir} && ./setrwxp now" && \
+	rm -rf /tmp/stata_update.tar && \
+	rm -rf /tmp/stata_update && \
+	rm ${stata_target_dir}/setrwxp
+
 
 # NB_UID arg is inherited from the official Jupyter dockerfiles
 USER ${NB_UID}
