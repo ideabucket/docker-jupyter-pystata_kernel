@@ -4,7 +4,6 @@
 FROM jupyter/minimal-notebook:latest
 
 ARG stata_version=17
-ARG license_file=rsrc/stata.lic
 
 # Downloading from the official website requires special credentials, so
 # we assume your employer or university has probably done this and given you
@@ -22,10 +21,11 @@ ARG stata_target_dir=/usr/local/stata${stata_version}
 # git+https://github.com/ticoneva/pystata-kernel.git
 ARG kernel_pkgname=pystata-kernel
 
+# this is where the tarballs containing the actual stata files unpack to
 # this path has changed between versions before and might do so again
 ARG taz_path=${stata_install_dir}/unix/linux64
 
-# these args populate the config file
+# these args populate the pystata-kernel config file
 ARG stata_edition=be
 ARG graph_format=pystata
 ARG echo_behavior=False
@@ -34,8 +34,6 @@ ARG splash_behavior=False
 EXPOSE 8888/tcp
 
 USER root 
-
-COPY ${license_file} /tmp/
 
 # all this mess does the following things:
 # 
@@ -55,8 +53,8 @@ COPY ${license_file} /tmp/
 #
 # it does all this in one horror command chain because breaking it up would
 # result in a 2+Gb increase in the final image size
-RUN mkdir ${stata_install_dir} && \
-	mkdir ${stata_target_dir} && \
+RUN --mount=type=secret,id=stata_lic,target=${stata_target_dir}/stata.lic,required=true \
+	mkdir ${stata_install_dir} && \
 	ln -s ${stata_target_dir} /usr/local/stata && \
 	wget --output-document=/tmp/stata_linux.tar \
 		 	--no-verbose -- ${stata_base_tarball} && \
@@ -72,7 +70,6 @@ RUN mkdir ${stata_install_dir} && \
 			--file=${taz_path}/docs.taz && \
 	cp ${taz_path}/setrwxp ${stata_target_dir} && \
 	/bin/bash -c "cd ${stata_target_dir} && ./setrwxp now" && \
-	mv /tmp/stata.lic ${stata_target_dir}/stata.lic && \
 	rm -rf ${stata_install_dir} && \
 	apt-get update && \
 	apt-get install --no-install-recommends -y libtinfo5 libncurses5 && \
