@@ -2,8 +2,6 @@ Dockerfile and miscellanea to bootstrap a Jupyter notebook environment using [`p
 
 [1]: https://github.com/ticoneva/pystata-kernel
 
-Originally inspired by https://docs-jupyter.davidjachochavez.org/.
-
 # Before you start
 
 You need a valid `stata.lic` file to build the image, and to run the container. Assuming you have a legitimate Stata license, the easiest way to obtain the `.lic` file is to install Stata on your local machine---the license file is platform-independent.
