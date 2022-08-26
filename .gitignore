@@ -1,4 +1,0 @@
-# the rsrc directory holds the Stata tarball and the license file
-# which are not for distribution
-rsrc/**
-.gitignore
