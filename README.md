@@ -6,13 +6,17 @@ Dockerfile and miscellanea to bootstrap a Jupyter notebook environment using [`p
 
 You need a valid `stata.lic` file to build the image, and to run the container. Assuming you have a legitimate Stata license, the easiest way to obtain the `.lic` file is to install Stata on your local machine---the license file is platform-independent.
 
+This image is quite fat--stata assumes it is being installed on a personal machine, and treats disk space as cheap and plentiful as a result. 
+
 # Building the image
 
-You _must_ pass your `stata.lic` file to `docker build` as a secret named `stata_lic`. The parameter for this is:
+You _must_ pass your `stata.lic` file to `docker build` as a secret named `stata_lic`. If building by hand, the parameter for this is:
 
 ```bash
 docker build --secret id=stata_lic,src=/path/to/stata.lic …
 ```
+
+If using docker-compose, edit the `file:` entry under `secrets:`.
 
 In addition you can override the following build-args:
 
