@@ -19,9 +19,16 @@ EXPOSE 8888/tcp
 
 USER root 
 
+# obtain the base stata install from the AEA Data Editor's officially 
+# sanctioned dockerized Stata image--it by design does not have a ':latest'
+# tag (because it's about reproducibility) so we have to be specific
 COPY --from=dataeditors/stata17:2022-07-19 /usr/local/stata ${stata_target_dir}
 
-RUN	--mount=type=secret,id=stata_lic,target=${stata_target_dir}/stata.lic,required=true \
+# install some libraries stata needs, then fetch the latest stata update tarball
+# and have stata update itself from it (this requires manually deleting the old
+# utilities/ subdirs because the way Stata's internal update process tries to 
+# relocate them doesn't work inside a container)
+RUN --mount=type=secret,id=stata_lic,target=${stata_target_dir}/stata.lic,required=true \
 	ln -s ${stata_target_dir} /usr/local/stata && \
 	apt-get update && \
 	apt-get install --no-install-recommends -y libtinfo5 libncurses5 && \

@@ -1,0 +1,25 @@
+services:
+    notebook:
+        build: 
+            context: .
+            args:
+# uncomment any of these to override build args (the supplied values are the defaults)
+#             stata_edition: "be"
+#             graph_format: "pystata"
+#             echo_behavior: "False"
+#             splash_behavior: "False"
+#             kernel_pkgname: "pystata-kernel"
+#             stata_version: 17
+#             stata_update_tarball: "https://www.stata.com/support/updates/stata17/stata17update_linux64.tar"
+            secrets:
+                - stata_lic
+        ports:
+            - "8888:8888"
+        secrets:
+            - source: stata_lic
+              target: /usr/local/stata/stata.lic
+              mode: 0444
+
+secrets:
+    stata_lic:
+        file: # /path/to/stata.lic
