@@ -16,6 +16,7 @@ ARG splash_behavior=False
 
 FROM --platform=amd64 ubuntu:latest AS intermediate
 
+ARG stata_version
 ARG stata_update_tarball
 
 # obtain the base stata install from the AEA Data Editor's officially 
@@ -33,13 +34,14 @@ RUN apt-get update && \
 	
 # fetch the stata update tarball (this is more robust than letting stata do it)
 RUN --mount=type=cache,target=/tmp/stata_cache \
-	wget --output-document=/tmp/stata_cache/stata_update.tar \
-			--no-verbose --timestamping -- ${stata_update_tarball}
-
-RUN mkdir -m 775 /tmp/stata_update && \
+	wget --directory-prefix=/tmp/stata_cache --timestamping \
+			--no-verbose -- ${stata_update_tarball}
+			
+RUN --mount=type=cache,target=/tmp/stata_cache \
+	mkdir -m 775 /tmp/stata_update && \
 	tar --extract --no-same-owner --directory=/tmp/stata_update \
 			--strip-components=1 \
-			--file=/tmp/stata_cache/stata_update.tar
+			--file=/tmp/stata_cache/stata${stata_version}update_linux64.tar
 
 # tell stata to update itself from the tarball we just fetched
 RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=true \
