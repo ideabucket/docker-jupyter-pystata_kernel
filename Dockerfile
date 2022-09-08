@@ -12,8 +12,12 @@ ARG graph_format=pystata
 ARG echo_behavior=False
 ARG splash_behavior=False
 
-
-
+# Step 1: use an intermediate image to fetch the stata binaries and make
+# sure they are up to date for a smaller final image
+# see: https://docs.docker.com/develop/develop-images/multistage-build/
+#
+# we use ubuntu rather than alpine as the base image because stata 
+# demands ncurses 5, which is legacy and not available as an apk
 FROM --platform=amd64 ubuntu:latest AS intermediate
 
 ARG stata_version
@@ -24,6 +28,7 @@ ARG stata_update_tarball
 # tag (because it's about reproducibility) so we have to be specific
 COPY --from=dataeditors/stata17:2022-07-19 /usr/local/stata /usr/local/stata
 
+# whoops, who left that there
 RUN rm /usr/local/stata/stata.lic.bak
 
 RUN apt-get update && \
@@ -55,7 +60,7 @@ RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=
 
 
 
-#--- Now build the final image --------------------
+# Step 2: build the final image
 
 FROM jupyter/minimal-notebook:latest
 
@@ -72,7 +77,9 @@ EXPOSE 8888/tcp
 
 USER root 
 
-COPY --from=intermediate /usr/local/stata ${stata_target_dir}
+# let the NB_USER own the stata directory so stata can be updated from
+# inside the container if necessary
+COPY --from=intermediate --chown=${NB_UID}:${NB_GID} /usr/local/stata ${stata_target_dir}
 
 RUN ln -s ${stata_target_dir} /usr/local/stata && \
 	apt-get update && \
@@ -81,8 +88,7 @@ RUN ln -s ${stata_target_dir} /usr/local/stata && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-# NB_UID arg is inherited from the official Jupyter dockerfiles
-USER ${NB_UID}
+USER ${NB_USER}
 
 ENV PATH=${stata_target_dir}:$PATH
 ENV JUPYTER_ENABLE_LAB=yes
@@ -92,8 +98,8 @@ RUN pip install ${kernel_pkgname} && \
 	conda install -c conda-forge jupyterlab-git jupyterlab-mathjax3 nodejs -y && \
 	jupyter labextension install jupyterlab-stata-highlight
 
-# heredocs depend on syntax v1.4+
-COPY <<-EOF /home/${NB_USER}/.pystata-kernel.conf
+# populate pystata-kernel.conf
+COPY --chown=${NB_UID}:${NB_GID} <<-EOF /home/${NB_USER}/.pystata-kernel.conf
 	[pystata-kernel]
 	stata_dir = ${stata_target_dir}
 	edition = ${stata_edition}
