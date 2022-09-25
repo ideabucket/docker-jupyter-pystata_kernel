@@ -29,7 +29,7 @@ ARG stata_update_tarball
 COPY --from=dataeditors/stata17:2022-10-11 /usr/local/stata /usr/local/stata
 
 # whoops, who left that there
-# RUN rm /usr/local/stata/stata.lic.bak
+RUN rm /usr/local/stata/stata.lic.bak
 
 RUN apt-get update && \
 	apt-get install -y wget && \

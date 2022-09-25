@@ -1,5 +1,7 @@
 Dockerfile and miscellanea to bootstrap a Jupyter notebook environment using [`pystata-kernel`][1]. Works with Stata 17. Doesn't work with previous versions since they didn't ship with `pystata`.
 
+Architecture note: This image uses Stata for Linux, which is x86_64 only. If you run this on an Apple Silicon Mac it will run under Rosetta.
+
 [1]: https://github.com/ticoneva/pystata-kernel
 
 # Before you start
