@@ -62,7 +62,7 @@ RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=
 
 # Step 2: build the final image
 
-FROM jupyter/minimal-notebook:latest
+FROM --platform=amd64 jupyter/minimal-notebook:latest
 
 ARG stata_version
 ARG stata_update_tarball
