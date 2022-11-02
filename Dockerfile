@@ -26,10 +26,10 @@ ARG stata_update_tarball
 # obtain the base stata install from the AEA Data Editor's officially 
 # sanctioned dockerized Stata image--it by design does not have a ':latest'
 # tag (because it's about reproducibility) so we have to be specific
-COPY --from=dataeditors/stata17:2022-07-19 /usr/local/stata /usr/local/stata
+COPY --from=dataeditors/stata17:2022-10-11 /usr/local/stata /usr/local/stata
 
 # whoops, who left that there
-RUN rm /usr/local/stata/stata.lic.bak
+# RUN rm /usr/local/stata/stata.lic.bak
 
 RUN apt-get update && \
 	apt-get install -y wget && \
