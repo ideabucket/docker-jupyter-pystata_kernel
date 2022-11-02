@@ -1,0 +1,41 @@
+services:
+    notebook:
+        build:
+            args:
+# uncomment any of these to override build args 
+# (the supplied values are the defaults)
+
+# these arguments are used to populate .pystata-kernel.conf
+# see https://github.com/ticoneva/pystata-kernel#configuration
+#
+#                 stata_edition: "be"
+#                 graph_format: "pystata"
+#                 echo_behavior: "False"
+#                 splash_behavior: "False"
+
+# override this to, e.g., build from a dev repo 
+# (no sanity-checking is done; hilarity may result)
+#
+#                 kernel_pkgname: "pystata-kernel"
+
+# if for some reason the link on https://www.stata.com/support/updates/ changes
+#
+#                 stata_update_tarball: "https://www.stata.com/support/updates/stata17/stata17update_linux64.tar"
+
+# these shouldn't need modifying
+#
+#                 stata_version: 17
+#                 stata_target_dir: "/usr/local/stata${stata_version}"            
+
+# uncomment all of this to forward your ssh agent into the container
+#        environment:
+#             - SSH_AUTH_SOCK=/run/host-services/ssh-auth.sock
+#             - CHOWN_EXTRA=/run/host-services/ssh-auth.sock
+#        volumes:
+#             - type: bind
+#               source: /run/host-services/ssh-auth.sock
+#               target: /run/host-services/ssh-auth.sock
+
+secrets:
+    stata_lic:
+#        file: /Applications/Stata/stata.lic

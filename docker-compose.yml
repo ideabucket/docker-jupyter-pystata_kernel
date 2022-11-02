@@ -1,0 +1,17 @@
+services:
+    notebook:
+        build: 
+            context: https://github.com/ideabucket/docker-jupyter-pystata_kernel.git#main
+            secrets:
+                - stata_lic
+        ports:
+            - "8888:8888"
+        secrets:
+            - source: stata_lic
+              target: /usr/local/stata/stata.lic
+              mode: 0444
+        user: "root" # required for CHOWN_EXTRA (and GRANT_SUDO)
+
+secrets:
+    stata_lic:
+        file: stata.lic

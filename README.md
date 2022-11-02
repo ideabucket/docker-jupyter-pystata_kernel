@@ -1,48 +1,33 @@
-Dockerfile and miscellanea to bootstrap a Jupyter notebook environment using [`pystata-kernel`][1]. Works with Stata 17. Doesn't work with previous versions since they didn't ship with `pystata`.
-
-Architecture note: This image uses Stata for Linux, which is x86_64 only. If you run this on an Apple Silicon Mac it will run under Rosetta.
+A Docker compose project to stand up a Jupyter notebook server with [`pystata-kernel`][1], so you can use Jupyter as a first-class UI for Stata.
 
 [1]: https://github.com/ticoneva/pystata-kernel
 
-# Before you start
+`pystata`, on which `pystata-kernel` depends, comes with Stata 17+. Older versions of Stata will not work.
 
-You need a valid `stata.lic` file to build the image, and to run the container. Assuming you have a legitimate Stata license, the easiest way to obtain the `.lic` file is to install Stata on your local machine—the license file is platform-independent.
+# You need a Stata licence
 
-This image is quite fat—stata assumes it is being installed on a personal machine, and treats disk space as cheap and plentiful as a result. 
+The image expects you to supply it with a valid `stata.lic` file. Get this from your local install of Stata, or from your IT department.
 
-# Building the image
+Put a copy of it in the same directory as `docker-compose.yml`, or override the `file` key for the `stata_lic` secret to tell Docker where it is.
 
-You _must_ pass your `stata.lic` file to `docker build` as a secret named `stata_lic`. If building by hand, the parameter for this is:
+# Quickstart
 
 ```bash
-docker build --secret id=stata_lic,src=/path/to/stata.lic …
+$ docker compose up
 ```
 
-If using docker-compose, edit the `file:` entry under `secrets:`.
+Everything should Just Work. Caution: the build process will download several gigabytes of data, because Stata installs are big. As much of this is cached (using Docker cache-mounts) as possible.
 
-In addition you can override the following build-args:
+If you are on an M1 Mac, the image will run under Rosetta, because there is no AArch64 build of Stata for Linux.
 
-## `pystata-kernel` config file options
+# Customisation, etc.
 
-These are used to populate `.pystata-kernel.conf`. See the [`pystata-kernel` documentation][psk-conf] for what they do.
+Rename [`docker-compose.override.sample.yml`][ov] to `docker-compose.override.yml` and anything you set in it will override the base config. (See [the Compose documentation][docs] for more information.)
 
-- `stata_edition`: Corresponds to `edition` config directive. Defaults to `be`, which will work with all licenses. If you have a better license, you probably want to override this one.
-- `graph_format`: Defaults to `pystata`.
-- `echo_behavior`: Corresponds to `echo` config directive.
-- `splash_behavior`: Corresponds to `splash` config directive.
+[ov]: blob/main/docker-compose.override.sample.yml
+[docs]: https://docs.docker.com/compose/extends/#multiple-compose-files
 
-[psk-conf]: https://github.com/ticoneva/pystata-kernel#configuration
-
-## Build-time options
-
-- `kernel_pkgname`: Defaults to `pystata-kernel`, so `pip` will install the release version. But can be overriden to, e.g., `git+https://github.com/ticoneva/pystata-kernel.git` to install the latest dev version. Absolutely no sanity-checking is done on this, but overriding it to something other than a version of pystata-kernel will likely have hilariously stupid results.
-- `stata_target_dir`: Where to put the Stata binaries in the image. Defaults to `/usr/local/stata${stata_version}`. Whatever you specify will be symlinked to `/usr/local/stata`.
-- `stata_update_tarball`: URL of the _update_ tarball to be passed to stata's `update all` command. Preset to the download link for Linux on  https://www.stata.com/support/updates/ as of this commit.
-- `stata_version`: Self-explanatory. Defaults to 17.
-
-# Running the container
-
-When you run the container, make sure you mount your `stata.lic` at `/usr/local/stata/stata.lic`. The image installs `jupyterlab-git`; if you want to use this to push to GitHub, mount a directory with an ssh key in it at `/home/jovyan/.ssh`.
+The comments explain what you can override. In particular you will probably want to override `stata_edition` if your licence can accommodate it.
 
 # Acknowledgements
 
