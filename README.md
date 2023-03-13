@@ -24,7 +24,7 @@ If you are on an M1 Mac, the image will run under Rosetta, because there is no A
 
 Rename [`docker-compose.override.sample.yml`][ov] to `docker-compose.override.yml` and anything you set in it will override the base config. (See [the Compose documentation][docs] for more information.)
 
-[ov]: docker-compose.override.sample.yml
+[ov]: blob/main/docker-compose.override.sample.yml
 [docs]: https://docs.docker.com/compose/extends/#multiple-compose-files
 
 The comments explain what you can override. In particular you will probably want to override `stata_edition` if your licence can accommodate it.

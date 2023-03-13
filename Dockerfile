@@ -4,7 +4,8 @@ ARG stata_version=17
 ARG stata_update_tarball="https://www.stata.com/support/updates/stata${stata_version}/stata${stata_version}update_linux64.tar"
 ARG stata_target_dir=/usr/local/stata${stata_version}
 
-ARG kernel_pkgname=pystata-kernel
+ARG kernel_pkgname=nbstata
+ARG conda_packagelist="jupyterlab-git jupyterlab-mathjax3 nodejs mamba-gator"
 
 # these args populate the pystata-kernel config file
 ARG stata_edition=be
@@ -26,10 +27,10 @@ ARG stata_update_tarball
 # obtain the base stata install from the AEA Data Editor's officially 
 # sanctioned dockerized Stata image--it by design does not have a ':latest'
 # tag (because it's about reproducibility) so we have to be specific
-COPY --from=dataeditors/stata17:2023-01-10 /usr/local/stata /usr/local/stata
+COPY --from=dataeditors/stata17:2023-03-08 /usr/local/stata /usr/local/stata
 
 # whoops, who left that there
-RUN rm /usr/local/stata/stata.lic.bak
+RUN if [ -f /ust/local/stata.lic.bak ]; then rm /usr/local/stata/stata.lic.bak; fi
 
 RUN apt-get update && \
 	apt-get install -y wget && \
@@ -49,6 +50,9 @@ RUN --mount=type=cache,target=/tmp/stata_cache \
 			--file=/tmp/stata_cache/stata${stata_version}update_linux64.tar
 
 # tell stata to update itself from the tarball we just fetched
+# we have to manually remove some directories, because stata's update
+# process tries to delete them using a process that doesn't work 
+# inside docker images ()
 RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=true \
 	rm -rf /usr/local/stata/utilities/jar && \
 	rm -rf /usr/local/stata/utilities/java && \
@@ -62,12 +66,13 @@ RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=
 
 # Step 2: build the final image
 
-FROM --platform=amd64 jupyter/minimal-notebook:latest
+FROM --platform=amd64 jupyter/r-notebook:latest
 
 ARG stata_version
 ARG stata_update_tarball
 ARG stata_target_dir
 ARG kernel_pkgname
+ARG conda_packagelist
 ARG stata_edition
 ARG graph_format
 ARG echo_behavior
@@ -94,16 +99,17 @@ ENV PATH=${stata_target_dir}:$PATH
 ENV JUPYTER_ENABLE_LAB=yes
 
 RUN pip install ${kernel_pkgname} && \
-	python -m pystata-kernel.install && \
-	conda install -c conda-forge jupyterlab-git jupyterlab-mathjax3 nodejs -y && \
-	jupyter labextension install jupyterlab-stata-highlight
+	python -m ${kernel_pkgname}.install && \
+	mamba install -c conda-forge -y ${conda_packagelist} && \
+	jupyter labextension install jupyterlab-stata-highlight @finos/perspective-jupyterlab
 
 # populate pystata-kernel.conf
-COPY --chown=${NB_UID}:${NB_GID} <<-EOF /home/${NB_USER}/.pystata-kernel.conf
-	[pystata-kernel]
+COPY --chown=${NB_UID}:${NB_GID} <<-EOF /home/${NB_USER}/.nbstata.conf
+	[nbstata]
 	stata_dir = ${stata_target_dir}
 	edition = ${stata_edition}
 	graph_format = ${graph_format}
 	echo = ${echo_behavior}
 	splash = ${splash_behavior}
+	missing = NA
 EOF
