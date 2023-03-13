@@ -1,5 +1,6 @@
 #syntax=docker/dockerfile:1
 
+ARG base_image="jupyter/minimal-notebook"
 ARG stata_version=17
 ARG stata_update_tarball="https://www.stata.com/support/updates/stata${stata_version}/stata${stata_version}update_linux64.tar"
 ARG stata_target_dir=/usr/local/stata${stata_version}
@@ -52,7 +53,7 @@ RUN --mount=type=cache,target=/tmp/stata_cache \
 # tell stata to update itself from the tarball we just fetched
 # we have to manually remove some directories, because stata's update
 # process tries to delete them using a process that doesn't work 
-# inside docker images ()
+# inside docker images (weird, right?)
 RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=true \
 	rm -rf /usr/local/stata/utilities/jar && \
 	rm -rf /usr/local/stata/utilities/java && \
@@ -66,7 +67,7 @@ RUN --mount=type=secret,id=stata_lic,target=/usr/local/stata/stata.lic,required=
 
 # Step 2: build the final image
 
-FROM --platform=amd64 jupyter/r-notebook:latest
+FROM --platform=amd64 ${base_image}:latest
 
 ARG stata_version
 ARG stata_update_tarball
@@ -101,7 +102,7 @@ ENV JUPYTER_ENABLE_LAB=yes
 RUN pip install ${kernel_pkgname} && \
 	python -m ${kernel_pkgname}.install && \
 	mamba install -c conda-forge -y ${conda_packagelist} && \
-	jupyter labextension install jupyterlab-stata-highlight @finos/perspective-jupyterlab
+	jupyter labextension install jupyterlab-stata-highlight2
 
 # populate pystata-kernel.conf
 COPY --chown=${NB_UID}:${NB_GID} <<-EOF /home/${NB_USER}/.nbstata.conf
