@@ -6,7 +6,8 @@ ARG stata_update_tarball="https://www.stata.com/support/updates/stata${stata_ver
 ARG stata_target_dir=/usr/local/stata${stata_version}
 
 ARG kernel_pkgname=nbstata
-ARG conda_packagelist="jupyterlab-git jupyterlab-mathjax3 nodejs mamba-gator"
+ARG conda_nbstatadeps="bqplot fastcore gast ipydatagrid ipywidgets jupyterlab_widgets numpy pandas py2vega traittypes tzdata widgetsnbextension"
+ARG conda_packagelist="jupyterlab-git nodejs"
 
 # these args populate the pystata-kernel config file
 ARG stata_edition=be
@@ -31,7 +32,7 @@ ARG stata_update_tarball
 COPY --from=dataeditors/stata17:2023-03-08 /usr/local/stata /usr/local/stata
 
 # whoops, who left that there
-RUN if [ -f /ust/local/stata.lic.bak ]; then rm /usr/local/stata/stata.lic.bak; fi
+RUN if [ -f /usr/local/stata.lic.bak ]; then rm /usr/local/stata/stata.lic.bak; fi
 
 RUN apt-get update && \
 	apt-get install -y wget && \
@@ -99,10 +100,9 @@ USER ${NB_USER}
 ENV PATH=${stata_target_dir}:$PATH
 ENV JUPYTER_ENABLE_LAB=yes
 
-RUN pip install ${kernel_pkgname} && \
-	python -m ${kernel_pkgname}.install && \
-	mamba install -c conda-forge -y ${conda_packagelist} && \
-	jupyter labextension install jupyterlab-stata-highlight2
+RUN mamba install -c conda-forge -y ${conda_nbstatadeps} ${conda_packagelist} && \
+	pip install ${kernel_pkgname} jupyterlab_stata_highlight2 && \
+	python -m ${kernel_pkgname}.install	
 
 # populate pystata-kernel.conf
 COPY --chown=${NB_UID}:${NB_GID} <<-EOF /home/${NB_USER}/.nbstata.conf
