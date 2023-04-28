@@ -32,11 +32,17 @@ The comments explain what you can override. In particular you will probably want
 # Acknowledgements
 
 - First inspired by David T. Jacho–Chávez's [“virtual econometrics lab”][vel]
-- [kylebarron/stata_kernel][s_k] for the original, pre-`pystata` Stata kernel for JupyterLab that made this possible
-- [ticoneva/pystata-kernel][psk] for building the new `pystata`-based kernel
-- [AEADataEditor/docker-stata][aea] for the docker image that makes building this vastly less painful than it was, and for the idea of mounting `stata.lic` as a secret
+- [kylebarron/stata_kernel][s_k] for the original, pre-`pystata` Stata kernel
+  for JupyterLab that made this possible
+- [ticoneva/pystata-kernel][psk] for building the new `pystata`-based kernel 
+  and [hugetim/nbstata][nbs] for carrying it forward
+- [AEADataEditor/docker-stata][aea] for the docker image that makes building 
+  this vastly less painful than it was, and for the idea of mounting 
+  `stata.lic` as a secret
 
 [vel]: https://docs-jupyter.davidjachochavez.org/
 [s_k]: https://github.com/kylebarron/stata_kernel/
 [psk]: https://github.com/ticoneva/pystata-kernel/
+[nbs]: https://github.com/hugetim/nbstata/
 [aea]: https://github.com/AEADataEditor/docker-stata
+
