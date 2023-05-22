@@ -1,6 +1,6 @@
-A Docker compose project to stand up a Jupyter notebook server with [`nbstata`][1], so you can use Jupyter as a first-class UI for Stata.
+A Docker compose project to stand up a Jupyter notebook server with [`nbstata`][nbs], so you can use Jupyter as a first-class UI for Stata.
 
-[1]: [https://github.com/ticoneva/pystata-kernel](https://github.com/hugetim/nbstata)
+[nbs]: https://github.com/hugetim/nbstata
 
 `pystata`, on which `nbstata` depends, comes with Stata 17+. Older versions of Stata will not work.
 
