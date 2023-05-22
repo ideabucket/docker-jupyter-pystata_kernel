@@ -10,6 +10,8 @@ The image expects you to supply it with a valid `stata.lic` file. Get this from 
 
 Put a copy of it in the same directory as `docker-compose.yml`, or override the `file` key for the `stata_lic` secret to tell Docker where it is.
 
+If you are on Linux, your license file is probably at `/usr/local/stata/stata.lic`. On Macs it is at `/Applications/Stata/stata.lic`. I have no idea where it lives on Windows, but probably in the same place as the Stata `exe` file.
+
 # Quickstart
 
 ```bash
